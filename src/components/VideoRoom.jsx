@@ -1,15 +1,17 @@
 import React, { Component } from "react";
-import "./App.css";
+import "../App.css";
 import axios from "axios";
-import VideoRoomComponent from "./components/VideoRoomComponent";
+import VideoRoomComponent from "./VideoRoomComponent";
+import queryString from "query-string";
 
-class App extends Component {
+class VideoRoom extends Component {
   constructor(props) {
     super(props);
     this.OPENVIDU_SERVER_URL = "https://" + window.location.hostname + ":4443";
+    this.TOKEN_URL = "wss://" + window.location.hostname + ":4443";
     this.OPENVIDU_SERVER_SECRET = "MY_SECRET";
     this.state = {
-      mySessionId: "SessionA",
+      mySessionId: "",
       myUserName: "OpenVidu_User_" + Math.floor(Math.random() * 100),
       token: undefined
     };
@@ -20,6 +22,35 @@ class App extends Component {
     this.handleChangeSessionId = this.handleChangeSessionId.bind(this);
     this.handleChangeUserName = this.handleChangeUserName.bind(this);
     this.joinSession = this.joinSession.bind(this);
+  }
+  componentDidMount() {
+    let values = queryString.parse(this.props.location.search);
+
+    console.log("TokenId", values.tokenId);
+    console.log(values.sessionId);
+    console.log(values.role);
+    console.log(values.version);
+    const token =
+      this.TOKEN_URL +
+      "?" +
+      "sessionId=" +
+      values.sessionId +
+      "&" +
+      "token=" +
+      values.token +
+      "&" +
+      "role=" +
+      values.role +
+      "&" +
+      "version=" +
+      values.version;
+
+    console.log("Token is ", token);
+
+    this.setState({
+      mySessionId: values.sessionId,
+      token: token
+    });
   }
 
   handlerJoinSessionEvent() {
@@ -65,52 +96,19 @@ class App extends Component {
     const mySessionId = this.state.mySessionId;
     const myUserName = this.state.myUserName;
     const token = this.state.token;
-    console.log("App", mySessionId, myUserName, token);
+    console.log("Mydetails", mySessionId, myUserName, token);
     return (
       <div>
-        {this.state.session === undefined ? (
-          <div id="join">
-            <div id="join-dialog">
-              <h1> Join a video session </h1>
-              <form onSubmit={this.joinSession}>
-                <p>
-                  <label>Participant: </label>
-                  <input
-                    type="text"
-                    id="userName"
-                    value={myUserName}
-                    onChange={this.handleChangeUserName}
-                    required
-                  />
-                </p>
-                <p>
-                  <label> Session: </label>
-                  <input
-                    type="text"
-                    id="sessionId"
-                    value={mySessionId}
-                    onChange={this.handleChangeSessionId}
-                    required
-                  />
-                </p>
-                <p>
-                  <input name="commit" type="submit" value="JOIN" />
-                </p>
-              </form>
-            </div>
-          </div>
-        ) : (
-          <div id="session">
-            <VideoRoomComponent
-              id="opv-session"
-              sessionName={mySessionId}
-              user={myUserName}
-              token={token}
-              joinSession={this.handlerJoinSessionEvent}
-              leaveSession={this.handlerLeaveSessionEvent}
-              error={this.handlerErrorEvent}
-            />
-          </div>
+        <div id="session">
+          <VideoRoomComponent
+            id="opv-session"
+            sessionName={mySessionId}
+            user={myUserName}
+            token={token}
+            leaveSession={this.handlerLeaveSessionEvent}
+            error={this.handlerErrorEvent}
+          />
+        </div>
         )}
       </div>
     );
@@ -202,4 +200,4 @@ class App extends Component {
   }
 }
 
-export default App;
+export default VideoRoom;
