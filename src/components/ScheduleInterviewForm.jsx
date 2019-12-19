@@ -8,6 +8,7 @@ import ImageUpload from "./ImageUpload";
 import CandidateEmail from "../templates/CandidateEmail";
 import InterviewerEmail from "../templates/InterviewerEmail";
 import { renderToString } from "react-dom/server";
+import AssessmentComponent from "./assessment/AssessmentComponent";
 
 import {
   Container,
@@ -221,7 +222,10 @@ class ScheduleInterviewForm extends React.Component {
       let temp = token.split("?");
       candidate.videoAccessUrlcan = this.TOKEN_URL + temp[1];
       this.setState({ candidate });
-      console.log("Candidate-->Video", this.state.candidate.videoAccessUrlcan);
+      console.log(
+        "Candidate-->VideoURL",
+        this.state.candidate.videoAccessUrlcan
+      );
     });
     return status;
   }
@@ -231,9 +235,9 @@ class ScheduleInterviewForm extends React.Component {
       interviewer =>
         (status = this.createToken(this.state.interviewDetail.sessionId).then(
           token => {
-            console.log("Token Interviewer", token);
             let temp = token.split("?");
             interviewer.videoAccessUrlint = this.TOKEN_URL + temp[1];
+            console.log("Candidate-->VideoURL", interviewer.videoAccessUrlint);
             this.setState({ interviewer });
           }
         ))

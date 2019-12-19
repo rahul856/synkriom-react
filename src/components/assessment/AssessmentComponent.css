@@ -1,0 +1,14 @@
+.AssessmentComponent {
+  color: #706969 !important;
+  background-color: aliceblue !important;
+}
+#assessmentform {
+  width: 100%;
+}
+
+#years {
+  max-width: 10%;
+}
+#remarks {
+  max-width: 80%;
+}

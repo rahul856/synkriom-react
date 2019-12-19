@@ -12,6 +12,8 @@ import ovLogo2 from "./assets/img/VeriKlick-Logo.png";
 import "bootstrap/dist/css/bootstrap.css";
 import "react-datepicker/dist/react-datepicker.css";
 import VideoRoom from "./components/VideoRoom";
+import VideoComponent from "./components/VideoComponent";
+import AssessmentComponent from "./components/assessment/AssessmentComponent";
 
 ReactDOM.render(
   <div>
@@ -29,8 +31,8 @@ ReactDOM.render(
     </div>
     <Router>
       <div>
-        <Route exact path="/" component={ScheduleInterviewForm} />
-        <Route path="/video" component={VideoRoom} />
+        <Route exact path="/" component={AssessmentComponent} />
+        <Route path="/video" component={VideoComponent} />
         <Route path="/app" component={App} />
       </div>
     </Router>

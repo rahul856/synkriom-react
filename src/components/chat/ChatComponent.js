@@ -1,133 +1,121 @@
-import React, { Component } from 'react';
-import IconButton from '@material-ui/core/IconButton';
-import Fab from '@material-ui/core/Fab';
-import HighlightOff from '@material-ui/icons/HighlightOff';
-import Send from '@material-ui/icons/Send';
+import React, { Component } from "react";
+import Chat from "twilio-chat";
+import { Chat as ChatUI } from "@progress/kendo-react-conversational-ui";
 
-import './ChatComponent.css';
-import { Tooltip } from '@material-ui/core';
+class ChatComponent extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      error: null,
+      isLoading: true,
+      messages: []
+    };
 
-export default class ChatComponent extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            messageList: [],
-            message: '',
-        };
-        this.chatScroll = React.createRef();
+    this.user = {
+      id: props.username,
+      name: props.username
+    };
 
-        this.handleChange = this.handleChange.bind(this);
-        this.handlePressKey = this.handlePressKey.bind(this);
-        this.close = this.close.bind(this);
-        this.sendMessage = this.sendMessage.bind(this);
-    }
+    this.setupChatClient = this.setupChatClient.bind(this);
+    this.messagesLoaded = this.messagesLoaded.bind(this);
+    this.messageAdded = this.messageAdded.bind(this);
+    this.sendMessage = this.sendMessage.bind(this);
+    this.handleError = this.handleError.bind(this);
+  }
 
+  async componentDidMount() {
+    await fetch("/chat/token", {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      method: "POST",
+      body: `identity=${encodeURIComponent(this.props.username)}`
+    })
+      .then(res => res.json())
+      .then(data => Chat.create(data.token))
+      .then(this.setupChatClient)
+      .catch(this.handleError);
+  }
 
-    componentDidMount() {
-        this.props.user.getStreamManager().stream.session.on('signal:chat', (event) => {
-            const data = JSON.parse(event.data);
-            let messageList = this.state.messageList;
-            messageList.push({ connectionId: event.from.connectionId, nickname: data.nickname, message: data.message });
-            const document = window.document;
-            setTimeout(() => {
-                const userImg = document.getElementById('userImg-' + (this.state.messageList.length - 1));
-                const video = document.getElementById('video-' + data.streamId);
-                const avatar = userImg.getContext('2d');
-                avatar.drawImage(video, 200, 120, 285, 285, 0, 0, 60, 60);
-                this.props.messageReceived();
-            }, 50);
-            this.setState({ messageList: messageList });
-            this.scrollToBottom();
-        });
-    }
+  handleError(error) {
+    console.error(error);
+    this.setState({
+      error: "Could not load chat."
+    });
+  }
 
-    handleChange(event) {
-        this.setState({ message: event.target.value });
-    }
-
-    handlePressKey(event) {
-        if (event.key === 'Enter') {
-            this.sendMessage();
+  setupChatClient(client) {
+    console.log("Client", client);
+    this.client = client;
+    this.client
+      .getChannelByUniqueName("general2")
+      .then(channel => channel)
+      .catch(error => {
+        if (error.body.code === 50300) {
+          return this.client.createChannel({ uniqueName: "general2" });
+        } else {
+          this.handleError(error);
         }
-    }
+      })
+      .then(channel => {
+        this.channel = channel;
+        return this.channel.join().catch(() => {});
+      })
+      .then(() => {
+        this.setState({ isLoading: false });
+        this.channel.getMessages().then(this.messagesLoaded);
+        this.channel.on("messageAdded", this.messageAdded);
+      })
+      .catch(this.handleError);
+  }
 
-    sendMessage() {
-        console.log(this.state.message);
-        if (this.props.user && this.state.message) {
-            let message = this.state.message.replace(/ +(?= )/g, '');
-            if (message !== '' && message !== ' ') {
-                const data = { message: message, nickname: this.props.user.getNickname(), streamId: this.props.user.getStreamManager().stream.streamId };
-                this.props.user.getStreamManager().stream.session.signal({
-                    data: JSON.stringify(data),
-                    type: 'chat',
-                });
-            }
-        }
-        this.setState({ message: '' });
-    }
+  twilioMessageToKendoMessage(message) {
+    return {
+      text: message.body,
+      author: { id: message.author, name: message.author },
+      timestamp: message.timestamp
+    };
+  }
 
-    scrollToBottom() {
-        setTimeout(() => {
-            try {
-                this.chatScroll.current.scrollTop = this.chatScroll.current.scrollHeight;
-            } catch (err) {}
-        }, 20);
-    }
+  messagesLoaded(messagePage) {
+    this.setState({
+      messages: messagePage.items.map(this.twilioMessageToKendoMessage)
+    });
+  }
 
-    close() {
-        this.props.close(undefined);
-    }
+  messageAdded(message) {
+    this.setState(prevState => ({
+      messages: [
+        ...prevState.messages,
+        this.twilioMessageToKendoMessage(message)
+      ]
+    }));
+  }
 
-    render() {
-        const styleChat = { display: this.props.chatDisplay };
-        return (
-            <div id="chatContainer">
-                <div id="chatComponent" style={styleChat}>
-                    <div id="chatToolbar">
-                        <span>{this.props.user.getStreamManager().stream.session.sessionId} - CHAT</span>
-                        <IconButton id="closeButton" onClick={this.close}>
-                            <HighlightOff color="secondary" />
-                        </IconButton>
-                    </div>
-                    <div className="message-wrap" ref={this.chatScroll}>
-                        {this.state.messageList.map((data, i) => (
-                            <div
-                                key={i}
-                                id="remoteUsers"
-                                className={
-                                    'message' + (data.connectionId !== this.props.user.getConnectionId() ? ' left' : ' right')
-                                }
-                            >
-                                <canvas id={'userImg-' + i} width="60" height="60" className="user-img" />
-                                <div className="msg-detail">
-                                    <div className="msg-info">
-                                        <p> {data.nickname}</p>
-                                    </div>
-                                    <div className="msg-content">
-                                        <span className="triangle" />
-                                        <p className="text">{data.message}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+  sendMessage(event) {
+    this.channel.sendMessage(event.message.text);
+  }
 
-                    <div id="messageInput">
-                        <input
-                            placeholder="Send a messge"
-                            id="chatInput"
-                            value={this.state.message}
-                            onChange={this.handleChange}
-                            onKeyPress={this.handlePressKey}
-                        />
-                        <Tooltip title="Send message">
-                            <Fab size="small" id="sendButton" onClick={this.sendMessage}>
-                                <Send />
-                            </Fab>
-                        </Tooltip>
-                    </div>
-                </div>
-            </div>
-        );
+  componentWillUnmount() {
+    this.client.shutdown();
+  }
+
+  render() {
+    const styleChat = { display: this.props.chatDisplay };
+    if (this.state.error) {
+      return <p>{this.state.error}</p>;
+    } else if (this.state.isLoading) {
+      return <p>Loading chat...</p>;
     }
+    return (
+      <div style={styleChat}>
+        <ChatUI
+          user={this.user}
+          messages={this.state.messages}
+          onMessageSend={this.sendMessage}
+          width={400}
+        />
+      </div>
+    );
+  }
 }
+
+export default ChatComponent;
