@@ -17,3 +17,5 @@ npm run dev
 ```
 
 The React application will run on port 3000 and the server port 3001. Open [localhost:3000](http://localhost:3000) to log in  application.
+
+To Hit video Webpage use link http://localhost:3000/video
