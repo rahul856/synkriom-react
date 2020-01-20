@@ -8,7 +8,6 @@ import ToolbarComponent from "./toolbar/ToolbarComponent";
 import DialogExtensionComponent from "./dialog-extension/DialogExtension";
 import { OpenVidu } from "openvidu-browser";
 import UserModel from "../models/user-model";
-import StreamComponent from "./stream/StreamComponent";
 import AssessmentComponent from "./assessment/AssessmentComponent";
 import RemoteVideoComponent from "./RemoteVideoComponent";
 import ChatComponent from "./chat/ChatComponent";
