@@ -17,6 +17,7 @@
     "express": "^4.17.1",
     "faker": "^4.1.0",
     "jquery": "3.4.0",
+    "jwt-decode": "^2.2.0",
     "nodemailer": "^6.3.0",
     "openvidu-browser": "2.11.0",
     "query-string": "^6.8.3",
@@ -39,7 +40,7 @@
     "server": "node-env-run server --exec nodemon | pino-colada",
     "dev": "run-p server start"
   },
-  "proxy": "http://localhost:3001",
+  "proxy": "https://localhost:5000",
   "devDependencies": {
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
