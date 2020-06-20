@@ -16,7 +16,7 @@ var options = {
   cert: hscert,
 };
 var app = express();
-var allowedOrigins = ["https://localhost:5000", "https://localhost:3000"];
+var allowedOrigins = ["https://*:3000", "https://*:5000"];
 
 app.use(
   express.json(),
@@ -32,8 +32,8 @@ app.use(
 );
 
 // Endpoint to generate access token
-app.get("/token", function (request, response) {
-  var identity = faker.name.findName();
+app.get("/video/token", function (request, response) {
+  //var identity = faker.name.findName();
 
   // Create an access token which we will sign and return to the client,
   // containing the grant we just created
@@ -44,15 +44,18 @@ app.get("/token", function (request, response) {
   );
 
   // Assign the generated identity to the token
-  token.identity = identity;
+  token.identity = request.query.identity;
 
-  const grant = new VideoGrant({ room: "Room1" });
+  const grant = new VideoGrant({
+    room: "Room1",
+    identity: request.params.identity,
+  });
   // Grant token access to the Video API features
   token.addGrant(grant);
   console.log("Video Token", token);
   // Serialize the token to a JWT string and include it in a JSON response
   response.send({
-    identity: identity,
+    identity: token.identity,
     token: token.toJwt(),
   });
 });

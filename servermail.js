@@ -23,11 +23,7 @@ var transporter = nodemailer.createTransport({
   logger: true, // log information in cons
 });
 
-var allowedOrigins = [
-  "https://localhost:5000",
-  "https://localhost:3000",
-  "https://localhost:5001",
-];
+var allowedOrigins = ["https://*:5000", "https://*:3000", "https://*:5001"];
 
 app.use(
   express.json(),
@@ -36,12 +32,7 @@ app.use(
       // allow requests with no origin
       // (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) === -1) {
-        var msg =
-          "The CORS policy for this site does not " +
-          "allow access from the specified Origin.";
-        return callback(new Error(msg), false);
-      }
+
       return callback(null, true);
     },
   })
@@ -55,7 +46,7 @@ app.post("/send", (req, res, next) => {
   var mail = {
     from: name,
     to: email,
-    subject: "Hello Contact form request",
+    subject: "Interview Details",
     html: message,
   };
 

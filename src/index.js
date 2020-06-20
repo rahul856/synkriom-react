@@ -18,7 +18,7 @@ ReactDOM.render(
     </header>
     <div id="title">
       <a
-        href="http://www.openvidu.io/"
+        href="http://www.veriKlick.com/"
         target="_blank"
         rel="noopener noreferrer"
       >

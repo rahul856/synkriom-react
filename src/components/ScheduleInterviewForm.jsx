@@ -56,7 +56,7 @@ class ScheduleInterviewForm extends React.Component {
     this.OPENVIDU_SERVER_URL = "https://" + window.location.hostname;
     this.TWILLIO_TOKEN_URL = this.OPENVIDU_SERVER_URL + ":5000";
     this.TOKEN_URL =
-      "http://" + window.location.hostname + ":3000" + "/video?token=";
+      "https://" + window.location.hostname + ":3000" + "/video?token=";
     this.OPENVIDU_SERVER_SECRET = "MY_SECRET";
     this.handleSubmit = this.handleSubmit.bind(this);
     this.getToken = this.getToken.bind(this);
@@ -127,15 +127,17 @@ class ScheduleInterviewForm extends React.Component {
   //     .catch((Err) => console.error(Err));
   // }
 
-  getToken() {
-    return this.createToken(this.state.interviewDetail.sessionId);
+  getToken(fullname) {
+    return this.createToken(fullname);
   }
 
-  createToken(sessionId) {
+  createToken(fullname) {
     return new Promise((resolve, reject) => {
-      var data = JSON.stringify({ session: sessionId });
+      const url =
+        this.TWILLIO_TOKEN_URL + "/video/token?identity=" + fullname + "&room=";
+      console.log("URL-->" + url);
       axios
-        .get(this.TWILLIO_TOKEN_URL + "/token", data)
+        .get(url)
         .then((response) => {
           console.log("TOKEN", response);
           resolve(response.data.token);
@@ -144,53 +146,53 @@ class ScheduleInterviewForm extends React.Component {
     });
   }
 
-  createSession(sessionId) {
-    return new Promise((resolve, reject) => {
-      var data = JSON.stringify({
-        customSessionId: sessionId,
-        recordingMode: "ALWAYS",
-        defaultOutputMode: "INDIVIDUAL",
-      });
-      axios
-        .post(this.OPENVIDU_SERVER_URL + "/api/sessions", data, {
-          headers: {
-            Authorization:
-              "Basic " + btoa("OPENVIDUAPP:" + this.OPENVIDU_SERVER_SECRET),
-            "Content-Type": "application/json",
-          },
-        })
-        .then((response) => {
-          console.log("CREATE SESION", response);
-          resolve(response.data.id);
-        })
-        .catch((response) => {
-          var error = Object.assign({}, response);
-          if (error.response && error.response.status === 409) {
-            resolve(sessionId);
-          } else {
-            console.log(error);
-            console.warn(
-              "No connection to OpenVidu Server. This may be a certificate error at " +
-                this.OPENVIDU_SERVER_URL
-            );
-            if (
-              window.confirm(
-                'No connection to OpenVidu Server. This may be a certificate error at "' +
-                  this.OPENVIDU_SERVER_URL +
-                  '"\n\nClick OK to navigate and accept it. ' +
-                  'If no certificate warning is shown, then check that your OpenVidu Server is up and running at "' +
-                  this.OPENVIDU_SERVER_URL +
-                  '"'
-              )
-            ) {
-              window.location.assign(
-                this.OPENVIDU_SERVER_URL + "/accept-certificate"
-              );
-            }
-          }
-        });
-    });
-  }
+  // createSession(sessionId) {
+  //   return new Promise((resolve, reject) => {
+  //     var data = JSON.stringify({
+  //       customSessionId: sessionId,
+  //       recordingMode: "ALWAYS",
+  //       defaultOutputMode: "INDIVIDUAL",
+  //     });
+  //     axios
+  //       .post(this.OPENVIDU_SERVER_URL + "/api/sessions", data, {
+  //         headers: {
+  //           Authorization:
+  //             "Basic " + btoa("OPENVIDUAPP:" + this.OPENVIDU_SERVER_SECRET),
+  //           "Content-Type": "application/json",
+  //         },
+  //       })
+  //       .then((response) => {
+  //         console.log("CREATE SESION", response);
+  //         resolve(response.data.id);
+  //       })
+  //       .catch((response) => {
+  //         var error = Object.assign({}, response);
+  //         if (error.response && error.response.status === 409) {
+  //           resolve(sessionId);
+  //         } else {
+  //           console.log(error);
+  //           console.warn(
+  //             "No connection to OpenVidu Server. This may be a certificate error at " +
+  //               this.OPENVIDU_SERVER_URL
+  //           );
+  //           if (
+  //             window.confirm(
+  //               'No connection to OpenVidu Server. This may be a certificate error at "' +
+  //                 this.OPENVIDU_SERVER_URL +
+  //                 '"\n\nClick OK to navigate and accept it. ' +
+  //                 'If no certificate warning is shown, then check that your OpenVidu Server is up and running at "' +
+  //                 this.OPENVIDU_SERVER_URL +
+  //                 '"'
+  //             )
+  //           ) {
+  //             window.location.assign(
+  //               this.OPENVIDU_SERVER_URL + "/accept-certificate"
+  //             );
+  //           }
+  //         }
+  //       });
+  //   });
+  // }
 
   deleteInterViewer = (e) => {
     console.log("ID-->", e.target.id);
@@ -217,7 +219,9 @@ class ScheduleInterviewForm extends React.Component {
   }
 
   async populateTokensCandidate() {
-    let status = await this.getToken().then((token) => {
+    const fullname =
+      this.state.candidate.fnamecan + this.state.candidate.lnamecan;
+    let status = await this.getToken(fullname).then((token) => {
       console.log("Token Candidate", token);
       let candidate = this.state.candidate;
       //let temp = token.split("?");
@@ -234,17 +238,14 @@ class ScheduleInterviewForm extends React.Component {
     let status = undefined;
     this.state.interviewers.map(
       (interviewer) =>
-        (status = this.createToken(this.state.interviewDetail.sessionId).then(
-          (token) => {
-            //let temp = token.split("?");
-            interviewer.videoAccessUrlint = this.TOKEN_URL + token;
-            console.log(
-              "Interviewer-->VideoURL",
-              interviewer.videoAccessUrlint
-            );
-            this.setState({ interviewer });
-          }
-        ))
+        (status = this.createToken(
+          interviewer.fnameint + interviewer.lnameint
+        ).then((token) => {
+          //let temp = token.split("?");
+          interviewer.videoAccessUrlint = this.TOKEN_URL + token;
+          console.log("Interviewer-->VideoURL", interviewer.videoAccessUrlint);
+          this.setState({ interviewer });
+        }))
     );
     return status;
   }
@@ -293,7 +294,7 @@ class ScheduleInterviewForm extends React.Component {
   sendEmail(contact) {
     axios({
       method: "POST",
-      url: "https://localhost:5001/send",
+      url: this.OPENVIDU_SERVER_URL + ":5001" + "/send",
       data: {
         name: contact.fullname,
         email: contact.email,
