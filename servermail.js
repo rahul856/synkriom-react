@@ -10,25 +10,29 @@ var hscert = fs.readFileSync("cert.pem");
 
 var options = {
   key: hskey,
-  cert: hscert
+  cert: hscert,
 };
 
 var transporter = nodemailer.createTransport({
   service: "Gmail",
   auth: {
     user: "kshitijsaxenaingram@gmail.com",
-    pass: "understand0"
+    pass: "understand0",
   },
   debug: true, // show debug output
-  logger: true // log information in cons
+  logger: true, // log information in cons
 });
 
-var allowedOrigins = ["https://localhost:5000", "https://localhost:3000"];
+var allowedOrigins = [
+  "https://localhost:5000",
+  "https://localhost:3000",
+  "https://localhost:5001",
+];
 
 app.use(
   express.json(),
   cors({
-    origin: function(origin, callback) {
+    origin: function (origin, callback) {
       // allow requests with no origin
       // (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
@@ -39,7 +43,7 @@ app.use(
         return callback(new Error(msg), false);
       }
       return callback(null, true);
-    }
+    },
   })
 );
 
@@ -52,23 +56,23 @@ app.post("/send", (req, res, next) => {
     from: name,
     to: email,
     subject: "Hello Contact form request",
-    html: message
+    html: message,
   };
 
   transporter.sendMail(mail, (err, data) => {
     if (err) {
       res.json({
-        msg: "fail"
+        msg: "fail",
       });
     } else {
       res.json({
-        msg: "success"
+        msg: "success",
       });
     }
   });
 });
 
 var server = https.createServer(options, app);
-server.listen(5000, function() {
+server.listen(5001, function () {
   console.log("HTTPS Express server is up!");
 });

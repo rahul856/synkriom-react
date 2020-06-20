@@ -13,7 +13,7 @@ var hscert = fs.readFileSync("cert.pem");
 var bodyParser = require("body-parser");
 var options = {
   key: hskey,
-  cert: hscert
+  cert: hscert,
 };
 var app = express();
 var allowedOrigins = ["https://localhost:5000", "https://localhost:3000"];
@@ -21,18 +21,18 @@ var allowedOrigins = ["https://localhost:5000", "https://localhost:3000"];
 app.use(
   express.json(),
   cors({
-    origin: function(origin, callback) {
+    origin: function (origin, callback) {
       // allow requests with no origin
       // (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
 
       return callback(null, true);
-    }
+    },
   })
 );
 
 // Endpoint to generate access token
-app.get("/token", function(request, response) {
+app.get("/token", function (request, response) {
   var identity = faker.name.findName();
 
   // Create an access token which we will sign and return to the client,
@@ -46,14 +46,14 @@ app.get("/token", function(request, response) {
   // Assign the generated identity to the token
   token.identity = identity;
 
-  const grant = new VideoGrant();
+  const grant = new VideoGrant({ room: "Room1" });
   // Grant token access to the Video API features
   token.addGrant(grant);
   console.log("Video Token", token);
   // Serialize the token to a JWT string and include it in a JSON response
   response.send({
     identity: identity,
-    token: token.toJwt()
+    token: token.toJwt(),
   });
 });
 // parse application/x-www-form-urlencoded
@@ -61,7 +61,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // parse application/json
 app.use(bodyParser.json());
-app.post("/chat/token", function(request, response) {
+app.post("/chat/token", function (request, response) {
   // Create an access token which we will sign and return to the client,
   // containing the grant we just created
   var token = new AccessToken(
@@ -73,7 +73,7 @@ app.post("/chat/token", function(request, response) {
   const endpointId = "Rahul1234567";
   var chat_grant = new ChatGrant({
     serviceSid: process.env.TWILIO_CHAT_SERVICE_SID,
-    endpointId: endpointId
+    endpointId: endpointId,
   });
   token.addGrant(chat_grant);
   token.identity = request.identity;
@@ -82,13 +82,12 @@ app.post("/chat/token", function(request, response) {
   // Serialize the token to a JWT string and include it in a JSON response
   response.send(
     JSON.stringify({
-      identity: identity,
-      token: token.toJwt()
+      identity: token.identity,
+      token: token.toJwt(),
     })
   );
-  
-}
+});
 var server = https.createServer(options, app);
-server.listen(5000, function() {
+server.listen(5000, function () {
   console.log("HTTPS Express server is up!");
 });

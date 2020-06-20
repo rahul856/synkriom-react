@@ -31,7 +31,7 @@ ReactDOM.render(
     </div>
     <Router>
       <div>
-        <Route exact path="/" component={AssessmentComponent} />
+        <Route exact path="/" component={ScheduleInterviewForm} />
         <Route path="/video" component={VideoComponent} />
         <Route path="/app" component={App} />
       </div>

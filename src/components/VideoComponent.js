@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import Video from "twilio-video";
 import axios from "axios";
 import { Input, Button, Label } from "reactstrap";
+import jwt from "jwt-decode";
 
 import OpenViduLayout from "../layout/openvidu-layout";
 import ToolbarComponent from "./toolbar/ToolbarComponent";
@@ -11,15 +12,24 @@ import UserModel from "../models/user-model";
 import AssessmentComponent from "./assessment/AssessmentComponent";
 import RemoteVideoComponent from "./RemoteVideoComponent";
 import ChatComponent from "./chat/ChatComponent";
+import queryString from "query-string";
 
 var localUser = new UserModel();
 var faker = require("faker");
 export default class VideoComponent extends Component {
   constructor(props) {
-    super();
+    super(props);
     this.layout = new OpenViduLayout();
+    let values = queryString.parse(props.location.search);
+    const jsonToken = jwt(values.token);
+    const grant = jsonToken.grants;
+    console.log("Grants", grant);
+    const token = values.token;
+    console.log("Identity", grant.identity, "TokenId", token);
+    console.log("component Mounted", this.props.id);
     this.state = {
-      identity: null,
+      identity: grant.identity,
+      token,
       roomName: "Room1",
       localUser: undefined,
       roomNameErr: false, // Track error for room name TextField
@@ -30,7 +40,7 @@ export default class VideoComponent extends Component {
       subscribers: [],
       activeRoom: "", // Track the current active room
       chatDisplay: "none",
-      remoteParticipantAvailable: false
+      remoteParticipantAvailable: false,
     };
     this.joinRoom = this.joinRoom.bind(this);
     this.handleRoomNameChange = this.handleRoomNameChange.bind(this);
@@ -50,7 +60,7 @@ export default class VideoComponent extends Component {
     this.handleError = this.handleError.bind(this);
     this.toggleChat = this.toggleChat.bind(this);
   }
-  async componentDidMount() {
+  componentDidMount() {
     const openViduLayoutOptions = {
       maxRatio: 3 / 2, // The narrowest ratio that will be used (default 2x3)
       minRatio: 9 / 16, // The widest ratio that will be used (default 16x9)
@@ -61,7 +71,7 @@ export default class VideoComponent extends Component {
       bigMaxRatio: 3 / 2, // The narrowest ratio to use for the big elements (default 2x3)
       bigMinRatio: 9 / 16, // The widest ratio to use for the big elements (default 16x9)
       bigFirst: true, // Whether to place the big one in the top left (true) or bottom right
-      animate: true // Whether you want to animate the transitions
+      animate: true, // Whether you want to animate the transitions
     };
 
     this.layout.initLayoutContainer(
@@ -71,26 +81,6 @@ export default class VideoComponent extends Component {
     window.addEventListener("beforeunload", this.onbeforeunload);
     window.addEventListener("resize", this.updateLayout);
     window.addEventListener("resize", this.checkSize);
-    var identity = faker.name.findName();
-    console.log("Identity", identity);
-    const response = await fetch("/video/token", {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      method: "POST",
-      body: `identity=${encodeURIComponent(identity)}`
-    });
-    const myJson = await response.json();
-    console.log(JSON.stringify(myJson));
-    // .then(results => {
-    const { token } = myJson;
-
-    this.setState({
-      identity,
-      token
-    });
-    // })
-    // .catch(this.handleError);
-
-    console.log("component Mounted", this.props.id);
 
     this.joinRoom();
   }
@@ -98,7 +88,7 @@ export default class VideoComponent extends Component {
   handleError(error) {
     console.error(error);
     this.setState({
-      error: "Could not load chat."
+      error: "Could not load chat.",
     });
   }
 
@@ -137,7 +127,7 @@ export default class VideoComponent extends Component {
   handleRoomNameChange(e) {
     let roomName = e.target.value;
     this.setState({
-      roomName
+      roomName,
     });
   }
 
@@ -145,14 +135,15 @@ export default class VideoComponent extends Component {
     this.OV = new OpenVidu();
     if (!this.state.roomName.trim()) {
       this.setState({
-        roomNameErr: true
+        roomNameErr: true,
       });
       return;
     }
 
     console.log("Joining room '" + this.state.roomName + "'...");
     let connectOptions = {
-      name: this.state.roomName
+      name: this.state.roomName,
+      identity: this.state.identity,
     };
 
     if (this.state.previewTracks) {
@@ -161,16 +152,18 @@ export default class VideoComponent extends Component {
 
     // Join the Room with the token from the server and the
     // LocalParticipant's Tracks.
+    console.log("Token for twillio", this.state.token);
     Video.connect(this.state.token, connectOptions).then(
       this.roomJoined,
-      error => {
-        alert("Could not connect to Twilio: " + error.message);
+      (error) => {
+        console.log("ERROR", error);
+        //alert("Could not connect to Twilio: " + error.message);
       }
     );
   }
 
   attachTracks(tracks, container) {
-    tracks.forEach(track => {
+    tracks.forEach((track) => {
       container.appendChild(track.attach());
     });
   }
@@ -182,8 +175,8 @@ export default class VideoComponent extends Component {
   }
 
   detachTracks(tracks) {
-    tracks.forEach(track => {
-      track.detach().forEach(detachedElement => {
+    tracks.forEach((track) => {
+      track.detach().forEach((detachedElement) => {
         detachedElement.remove();
       });
     });
@@ -204,7 +197,7 @@ export default class VideoComponent extends Component {
       activeRoom: room,
       localMediaAvailable: true,
       hasJoinedRoom: true,
-      localUser: localUser
+      localUser: localUser,
     });
 
     // Attach LocalParticipant's Tracks, if not already attached.
@@ -214,7 +207,7 @@ export default class VideoComponent extends Component {
     }
 
     // Attach the Tracks of the Room's Participants.
-    room.participants.forEach(participant => {
+    room.participants.forEach((participant) => {
       console.log("Already in Room: '" + participant.identity + "'");
 
       this.updateLayout();
@@ -225,7 +218,7 @@ export default class VideoComponent extends Component {
     });
 
     // When a Participant joins the Room, log the event.
-    room.on("participantConnected", participant => {
+    room.on("participantConnected", (participant) => {
       this.updateLayout();
       console.log("Joining: '" + participant.identity + "'");
       this.setState({ remoteParticipantAvailable: true });
@@ -247,7 +240,7 @@ export default class VideoComponent extends Component {
     });
 
     // When a Participant leaves the Room, detach its Tracks.
-    room.on("participantDisconnected", participant => {
+    room.on("participantDisconnected", (participant) => {
       console.log("Participant '" + participant.identity + "' left the room");
       this.detachParticipantTracks(participant);
       this.setState({ remoteParticipantAvailable: false });
@@ -258,7 +251,7 @@ export default class VideoComponent extends Component {
     // of all Participants, including that of the LocalParticipant.
     room.on("disconnected", () => {
       if (this.state.previewTracks) {
-        this.state.previewTracks.forEach(track => {
+        this.state.previewTracks.forEach((track) => {
           track.stop();
         });
       }
@@ -268,7 +261,7 @@ export default class VideoComponent extends Component {
       this.setState({
         activeRoom: null,
         hasJoinedRoom: false,
-        localMediaAvailable: false
+        localMediaAvailable: false,
       });
     });
     this.updateLayout();
@@ -293,7 +286,7 @@ export default class VideoComponent extends Component {
     this.setState({
       hasJoinedRoom: false,
       localMediaAvailable: false,
-      participants: remoteUsers
+      participants: remoteUsers,
     });
     this.updateLayout();
     window.open("about:blank", "_self");
@@ -310,7 +303,7 @@ export default class VideoComponent extends Component {
     let room = this.state.activeRoom;
     console.log("LocalVideoTrack", room.localParticipant.tracks);
     let tracks = room.localParticipant.tracks;
-    tracks.forEach(element => {
+    tracks.forEach((element) => {
       console.log("Track", element.kind);
       if (element.kind.match("video")) {
         if (localUser.isVideoActive()) {
@@ -336,9 +329,9 @@ export default class VideoComponent extends Component {
         videoSource: videoSource,
         publishAudio: localUser.isAudioActive(),
         publishVideo: localUser.isVideoActive(),
-        mirror: false
+        mirror: false,
       },
-      error => {
+      (error) => {
         if (error && error.name === "SCREEN_EXTENSION_NOT_INSTALLED") {
           this.setState({ showExtensionDialog: true });
         } else if (error && error.name === "SCREEN_SHARING_NOT_SUPPORTED") {
@@ -361,7 +354,7 @@ export default class VideoComponent extends Component {
         this.state.activeRoom.localParticipant.publishtrack(publisher);
         this.setState({ localUser: localUser }, () => {
           this.sendSignalUserChanged({
-            isScreenShareActive: localUser.isScreenShareActive()
+            isScreenShareActive: localUser.isScreenShareActive(),
           });
         });
       });
@@ -408,7 +401,7 @@ export default class VideoComponent extends Component {
     let room = this.state.activeRoom;
     console.log("LocalVideoTrack", room.localParticipant.tracks);
     let tracks = room.localParticipant.tracks;
-    tracks.forEach(element => {
+    tracks.forEach((element) => {
       console.log("Track", element.kind);
       if (element.kind.match("audio")) {
         if (localUser.isAudioActive()) {

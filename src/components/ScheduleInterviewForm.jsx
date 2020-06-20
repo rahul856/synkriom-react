@@ -18,7 +18,7 @@ import {
   FormGroup,
   Label,
   Input,
-  Button
+  Button,
 } from "reactstrap";
 import generate from "@babel/generator";
 
@@ -31,8 +31,8 @@ class ScheduleInterviewForm extends React.Component {
         lnameint: "",
         emailint: "",
         phoneint: "",
-        videoAccessUrlint: ""
-      }
+        videoAccessUrlint: "",
+      },
     ],
     candidate: {
       cid: 0,
@@ -41,26 +41,29 @@ class ScheduleInterviewForm extends React.Component {
       emailcan: "",
       phonecan: "",
       photocan: "",
-      videoAccessUrlcan: ""
+      videoAccessUrlcan: "",
     },
     interviewDetail: {
       dateTime: new Date(),
       sessionId: "Session" + Math.floor(Math.random() * 100),
       clientName: "",
-      jobTitle: ""
-    }
+      jobTitle: "",
+    },
   };
 
   constructor() {
     super();
-    this.OPENVIDU_SERVER_URL = "https://" + window.location.hostname + ":4443";
+    this.OPENVIDU_SERVER_URL = "https://" + window.location.hostname;
+    this.TWILLIO_TOKEN_URL = this.OPENVIDU_SERVER_URL + ":5000";
     this.TOKEN_URL =
-      "https://" + window.location.hostname + ":3000" + "/video?";
+      "http://" + window.location.hostname + ":3000" + "/video?token=";
     this.OPENVIDU_SERVER_SECRET = "MY_SECRET";
     this.handleSubmit = this.handleSubmit.bind(this);
+    this.getToken = this.getToken.bind(this);
+    this.createToken = this.createToken.bind(this);
   }
 
-  handleChange = e => {
+  handleChange = (e) => {
     console.log(e.target.name, e.target.id, e.target.value);
 
     if (
@@ -69,7 +72,7 @@ class ScheduleInterviewForm extends React.Component {
         "lnameint",
         "emailint",
         "phoneint",
-        "videoAccessUrlint"
+        "videoAccessUrlint",
       ].includes(e.target.name)
     ) {
       let interviewers = [...this.state.interviewers];
@@ -86,7 +89,7 @@ class ScheduleInterviewForm extends React.Component {
         "emailcan",
         "phonecan",
         "videoAccessUrlcan",
-        "photocan"
+        "photocan",
       ].includes(e.target.name)
     ) {
       let candidate = this.state.candidate;
@@ -105,41 +108,39 @@ class ScheduleInterviewForm extends React.Component {
       this.setState({ [e.target.name]: [e.target.value] });
     }
   };
-  addInterViewer = e => {
+  addInterViewer = (e) => {
     const row = { fnameint: "", lnameint: "", emailint: "", phoneint: "" };
-    this.setState(prevState => ({
+    this.setState((prevState) => ({
       interviewers: [
         ...prevState.interviewers,
         {
           id: this.state.interviewers.length,
-          row
-        }
-      ]
+          row,
+        },
+      ],
     }));
   };
 
+  // getToken() {
+  //   return this.createSession(this.state.interviewDetail.sessionId)
+  //     .then((sessionId) => this.createToken(this.state.interviewDetail.sessionId))
+  //     .catch((Err) => console.error(Err));
+  // }
+
   getToken() {
-    return this.createSession(this.state.interviewDetail.sessionId)
-      .then(sessionId => this.createToken(sessionId))
-      .catch(Err => console.error(Err));
+    return this.createToken(this.state.interviewDetail.sessionId);
   }
 
   createToken(sessionId) {
     return new Promise((resolve, reject) => {
       var data = JSON.stringify({ session: sessionId });
       axios
-        .post(this.OPENVIDU_SERVER_URL + "/api/tokens", data, {
-          headers: {
-            Authorization:
-              "Basic " + btoa("OPENVIDUAPP:" + this.OPENVIDU_SERVER_SECRET),
-            "Content-Type": "application/json"
-          }
-        })
-        .then(response => {
+        .get(this.TWILLIO_TOKEN_URL + "/token", data)
+        .then((response) => {
           console.log("TOKEN", response);
           resolve(response.data.token);
         })
-        .catch(error => reject(error));
+        .catch((error) => reject(error));
     });
   }
 
@@ -148,21 +149,21 @@ class ScheduleInterviewForm extends React.Component {
       var data = JSON.stringify({
         customSessionId: sessionId,
         recordingMode: "ALWAYS",
-        defaultOutputMode: "INDIVIDUAL"
+        defaultOutputMode: "INDIVIDUAL",
       });
       axios
         .post(this.OPENVIDU_SERVER_URL + "/api/sessions", data, {
           headers: {
             Authorization:
               "Basic " + btoa("OPENVIDUAPP:" + this.OPENVIDU_SERVER_SECRET),
-            "Content-Type": "application/json"
-          }
+            "Content-Type": "application/json",
+          },
         })
-        .then(response => {
+        .then((response) => {
           console.log("CREATE SESION", response);
           resolve(response.data.id);
         })
-        .catch(response => {
+        .catch((response) => {
           var error = Object.assign({}, response);
           if (error.response && error.response.status === 409) {
             resolve(sessionId);
@@ -191,11 +192,11 @@ class ScheduleInterviewForm extends React.Component {
     });
   }
 
-  deleteInterViewer = e => {
+  deleteInterViewer = (e) => {
     console.log("ID-->", e.target.id);
     let deleteId = e.target.id - 1;
     const interviewers = this.state.interviewers.filter(
-      item => item.id !== deleteId
+      (item) => item.id !== deleteId
     );
     this.setState({ interviewers }, () =>
       console.log(this.state.interviewers, interviewers)
@@ -210,17 +211,17 @@ class ScheduleInterviewForm extends React.Component {
 
     this.generateCandidateSendEmail();
 
-    this.state.interviewers.map(interviewer =>
+    this.state.interviewers.map((interviewer) =>
       this.generateInterviewersSendEmail(interviewer)
     );
   }
 
-  populateTokensCandidate() {
-    let status = this.getToken().then(token => {
+  async populateTokensCandidate() {
+    let status = await this.getToken().then((token) => {
       console.log("Token Candidate", token);
       let candidate = this.state.candidate;
-      let temp = token.split("?");
-      candidate.videoAccessUrlcan = this.TOKEN_URL + temp[1];
+      //let temp = token.split("?");
+      candidate.videoAccessUrlcan = this.TOKEN_URL + token;
       this.setState({ candidate });
       console.log(
         "Candidate-->VideoURL",
@@ -232,12 +233,15 @@ class ScheduleInterviewForm extends React.Component {
   populateTokensInterviewers() {
     let status = undefined;
     this.state.interviewers.map(
-      interviewer =>
+      (interviewer) =>
         (status = this.createToken(this.state.interviewDetail.sessionId).then(
-          token => {
-            let temp = token.split("?");
-            interviewer.videoAccessUrlint = this.TOKEN_URL + temp[1];
-            console.log("Candidate-->VideoURL", interviewer.videoAccessUrlint);
+          (token) => {
+            //let temp = token.split("?");
+            interviewer.videoAccessUrlint = this.TOKEN_URL + token;
+            console.log(
+              "Interviewer-->VideoURL",
+              interviewer.videoAccessUrlint
+            );
             this.setState({ interviewer });
           }
         ))
@@ -249,7 +253,7 @@ class ScheduleInterviewForm extends React.Component {
     let contact = {
       fullname: "",
       email: "",
-      messageHtml: ""
+      messageHtml: "",
     };
     contact.fullname = interviewer.fnameint + " " + interviewer.lnameint;
     contact.email = interviewer.emailint;
@@ -263,14 +267,14 @@ class ScheduleInterviewForm extends React.Component {
     );
 
     console.log("interviewer.messageHtml", contact.messageHtml);
-    //this.sendEmail(contact);
+    this.sendEmail(contact);
   }
 
   generateCandidateSendEmail() {
     let contact = {
       fullname: "",
       email: "",
-      messageHtml: ""
+      messageHtml: "",
     };
     contact.fullname =
       this.state.candidate.fnamecan + " " + this.state.candidate.lnamecan;
@@ -283,19 +287,19 @@ class ScheduleInterviewForm extends React.Component {
     );
 
     console.log("candidate.messageHtml", contact.messageHtml);
-    //this.sendEmail(contact);
+    this.sendEmail(contact);
   }
 
   sendEmail(contact) {
     axios({
       method: "POST",
-      url: "https://localhost:5000/send",
+      url: "https://localhost:5001/send",
       data: {
         name: contact.fullname,
         email: contact.email,
-        messageHtml: contact.messageHtml
-      }
-    }).then(response => {
+        messageHtml: contact.messageHtml,
+      },
+    }).then((response) => {
       if (response.data.msg === "success") {
         alert("Email sent, awesome!");
       } else if (response.data.msg === "fail") {
@@ -304,11 +308,11 @@ class ScheduleInterviewForm extends React.Component {
     });
   }
 
-  onChange = date => {
+  onChange = (date) => {
     let interviewDetail = this.state.interviewDetail;
     interviewDetail.dateTime = date;
     this.setState({
-      interviewDetail
+      interviewDetail,
     });
   };
 

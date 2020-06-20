@@ -8,12 +8,12 @@ class ChatComponent extends Component {
     this.state = {
       error: null,
       isLoading: true,
-      messages: []
+      messages: [],
     };
 
     this.user = {
       id: props.username,
-      name: props.username
+      name: props.username,
     };
 
     this.setupChatClient = this.setupChatClient.bind(this);
@@ -24,13 +24,14 @@ class ChatComponent extends Component {
   }
 
   async componentDidMount() {
+    console.log("USERNAme", this.props.username);
     await fetch("/chat/token", {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       method: "POST",
-      body: `identity=${encodeURIComponent(this.props.username)}`
+      body: `identity=${encodeURIComponent(this.props.username)}`,
     })
-      .then(res => res.json())
-      .then(data => Chat.create(data.token))
+      .then((res) => res.json())
+      .then((data) => Chat.create(data.token))
       .then(this.setupChatClient)
       .catch(this.handleError);
   }
@@ -38,7 +39,7 @@ class ChatComponent extends Component {
   handleError(error) {
     console.error(error);
     this.setState({
-      error: "Could not load chat."
+      error: "Could not load chat.",
     });
   }
 
@@ -47,15 +48,15 @@ class ChatComponent extends Component {
     this.client = client;
     this.client
       .getChannelByUniqueName("general2")
-      .then(channel => channel)
-      .catch(error => {
+      .then((channel) => channel)
+      .catch((error) => {
         if (error.body.code === 50300) {
           return this.client.createChannel({ uniqueName: "general2" });
         } else {
           this.handleError(error);
         }
       })
-      .then(channel => {
+      .then((channel) => {
         this.channel = channel;
         return this.channel.join().catch(() => {});
       })
@@ -71,22 +72,22 @@ class ChatComponent extends Component {
     return {
       text: message.body,
       author: { id: message.author, name: message.author },
-      timestamp: message.timestamp
+      timestamp: message.timestamp,
     };
   }
 
   messagesLoaded(messagePage) {
     this.setState({
-      messages: messagePage.items.map(this.twilioMessageToKendoMessage)
+      messages: messagePage.items.map(this.twilioMessageToKendoMessage),
     });
   }
 
   messageAdded(message) {
-    this.setState(prevState => ({
+    this.setState((prevState) => ({
       messages: [
         ...prevState.messages,
-        this.twilioMessageToKendoMessage(message)
-      ]
+        this.twilioMessageToKendoMessage(message),
+      ],
     }));
   }
 
