@@ -14,15 +14,32 @@ var options = {
 };
 
 var transporter = nodemailer.createTransport({
-  service: "Gmail",
+  service: "gmail",
   auth: {
     user: "kshitijsaxenaingram@gmail.com",
-    pass: "understand0",
+    type: "OAuth2",
+    clientId:
+      "812477234206-jdkt5uhe2lkp4q7lsfmrc6h87re4gkjo.apps.googleusercontent.com",
+    clientSecret: "FcY-jydLRriCoACsieNYbDv4",
+    refreshToken:
+      "1//04d_zfXOhU8iVCgYIARAAGAQSNwF-L9IruOtSxPIBbeBGrFamthZFywgLCudBSrD03UDRC-NqGBWnzytEtpvCbdSXMMo71z2903E",
   },
   debug: true, // show debug output
   logger: true, // log information in cons
 });
 
+app.use(express.json());
+app.use(express.urlencoded());
+//app.use(express.multipart());
+
+app.use(function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  next();
+});
 var allowedOrigins = ["https://*:5000", "https://*:3000", "https://*:5001"];
 
 app.use(
